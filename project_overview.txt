@@ -1,0 +1,30 @@
+PROJECT OVERVIEW:
+
+goal
+- The goal of this project is to create a machine vision model that can detect and classify playing cards on a table in live time
+- I want this model to be able to keep a running high low count for black jack
+- ideally this will be an application where the user can open the app then use the camera to count cards being played on the table
+
+
+synthetic data generation:
+
+
+
+- zooms
+
+- 2d rotation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
