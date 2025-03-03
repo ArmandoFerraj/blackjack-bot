@@ -54,8 +54,8 @@ for img_file in os.listdir(raw_img_dir):
     # Blur, Contrast, Noise
     odd_sizes = [5, 7, 9, 11, 13, 15]
     blur_kernel = (np.random.choice(odd_sizes), np.random.choice(odd_sizes))
-    noise_std = np.random.uniform(10, 30)
-    contrast_alpha = np.random.uniform(0.8, 1.2)
+    noise_std = np.random.uniform(0, 5)
+    contrast_alpha = np.random.uniform(0.5, 2.5)
     
     blurred = cv2.GaussianBlur(img, blur_kernel, 0)
     noise = np.random.normal(0, noise_std, blurred.shape).astype(np.uint8)
@@ -63,7 +63,7 @@ for img_file in os.listdir(raw_img_dir):
     contrasted = cv2.convertScaleAbs(noisy, alpha=contrast_alpha)
 
     # Calculate new size for rotation (handle ±30° max, no clipping)
-    theta = np.random.uniform(-30, 30)
+    theta = np.random.uniform(-1, 1)
     angle_rad = np.radians(abs(theta))
     new_w = int(w * np.cos(angle_rad) + h * np.sin(angle_rad))
     new_h = int(w * np.sin(angle_rad) + h * np.cos(angle_rad))
@@ -82,13 +82,17 @@ for img_file in os.listdir(raw_img_dir):
     M[1, 2] += y_offset
     rotated_img = cv2.warpAffine(expanded, M, (new_w, new_h))
 
-    # Rotate corner coords
+    # Rotate corner coords (normalize to 0–1 correctly)
     corner_x_px = corner_x * w + x_offset
     corner_y_px = corner_y * h + y_offset
     corner_center = np.array([corner_x_px, corner_y_px, 1])
     new_corner_center = M.dot(corner_center)
-    new_corner_x = (new_corner_center[0] - x_offset) / w  # Normalize to original w/h
+    # Normalize to 0–1 based on original image size (1940x2061)
+    new_corner_x = (new_corner_center[0] - x_offset) / w
     new_corner_y = (new_corner_center[1] - y_offset) / h
+    # Ensure within 0–1 bounds (clip if needed)
+    new_corner_x = np.clip(new_corner_x, 0, 1)
+    new_corner_y = np.clip(new_corner_y, 0, 1)
     new_corner_label = f"{int(corner_class)} {new_corner_x} {new_corner_y} {corner_w} {corner_h}"
 
     # Mask with outline coords (before rotation, adjust for expanded size)
@@ -98,11 +102,10 @@ for img_file in os.listdir(raw_img_dir):
     orig_x_max = int(outline_x_px + (outline_w * w) / 2)
     orig_y_min = int(outline_y_px - (outline_h * h) / 2)
     orig_y_max = int(outline_y_px + (outline_h * h) / 2)
-    mask = np.zeros((new_h, new_w), dtype=np.uint8)  # 2D mask
+    mask = np.zeros((new_h, new_w), dtype=np.uint8)
     mask[orig_y_min:orig_y_max, orig_x_min:orig_x_max] = 255
-    # Convert mask to 3-channel for np.where
     rotated_mask = cv2.warpAffine(mask, M, (new_w, new_h))
-    rotated_mask_3ch = cv2.cvtColor(rotated_mask, cv2.COLOR_GRAY2BGR)  # Make it 3-channel
+    rotated_mask_3ch = cv2.cvtColor(rotated_mask, cv2.COLOR_GRAY2BGR)
 
     # Background swap
     bg_file = np.random.choice(bg_files)
