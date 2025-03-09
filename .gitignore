@@ -1,1 +1,4 @@
-"data/synthetic/\n*.pyc" 
+"data/train" 
+"data/val" 
+"data/test" 
+"data/verification"
